@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.m2m.example.demo.api.mypage.mapper.MypageMapper">
+	<select id="selectCodeList" resultType="kr.co.m2m.example.demo.api.mypage.model.CodeVO">
+		/* api.mypage.mapper.MypageMapper.selectCodeList */
+		SELECT scode
+		     , scode_nm
+		     , bigo1
+		  FROM dbo.scodett
+		 WHERE grcode = #{grcode}
+	</select>
+
+	<select id="selectAppNum" parameterType="java.lang.String" resultType="java.lang.String">
+		/* api.mypage.mapper.MypageMapper.selectAppNum */
+		SELECT scode
+		  FROM dbo.scodett
+		 WHERE scode_nm = #{name}
+	</select>
+	
+	<select id="selectApprovalRecList" resultType="kr.co.m2m.example.demo.api.mypage.model.ApprovalVO">
+		/* api.mypage.mapper.MypageMapper.selectApprovalRecList */
+		WITH code AS (
+		             SELECT gcodett.grcode                       /* 공통코드 */
+		                  , gcodett.grcode_nm                    /* 공통코드명 */
+		                  , scodett.scode                        /* 세부코드 */
+		                  , scodett.scode_nm                     /* 세부코드명 */
+		               FROM dbo.gcodett AS gcodett               /* 공통코드(그룹코드) */
+		              INNER JOIN dbo.scodett AS scodett          /* 공통코드(세부코드) */
+		                 ON scodett.grcode = gcodett.grcode
+		             )
+		SELECT tmp.*
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A010' AND code.scode = tmp.app_code) AS app_code_nm     /* 결재상태명 */
+		  FROM (
+		       SELECT approvaltt.serial                     /* 결재serial */
+		            , approvaltt.submit_id                  /* 결재상신ID */
+		            , approvaltt.submit_dt                  /* 결재상신일 */
+		            , approvaltt.app_gubun                  /* 결재종류 */
+		            , approvaltt.app_status                 /* 결재상태 */
+		            , approvaltt.app_id                     /* 결재자ID */
+		            , approvaltt.app_dt                     /* 결재일 */
+		       <if test="appId != null and appId != ''">
+		            , approvaltt.app_code                   /* 결재코드 */
+		       </if>
+		            , approvaltt.app_content                /* 결재내용 */
+		            , approvaltt.app_1                      /* 대표결재1 */
+		            , approvaltt.app_1_dt                   /* 대표결재1일시 */
+		       <if test="app1 != null and app1 != ''">
+		            , approvaltt.app_1_code AS app_code     /* 결재1코드 */
+		       </if>
+		            , approvaltt.app_1_content              /* 결재1사유 */
+		            , approvaltt.app_2                      /* 대표결재2 */
+		            , approvaltt.app_2_dt                   /* 대표결재2일시 */
+		       <if test="app2 != null and app2 != ''">
+		            , approvaltt.app_2_code AS app_code     /* 결재2코드 */
+		       </if>
+		            , approvaltt.app_2_content              /* 결재2사유 */
+		            , approvaltt.app_3                      /* 대표결재3 */
+		            , approvaltt.app_3_dt                   /* 대표결재3일시 */
+		       <if test="app3 != null and app3 != ''">
+		            , approvaltt.app_3_code AS app_code     /* 결재3코드 */
+		       </if>
+		            , approvaltt.app_3_content              /* 결재3사유 */
+		            , vacationtt.s_date                     /* 시작일 */
+		            , vacationtt.e_date                     /* 종료일 */
+		            , vacationtt.v_code                     /* 근태코드 */
+		            , vacationtt.v_reason                   /* 근태사유 */
+		            , membertt.name                         /* 이름 */
+		            , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A007' AND code.scode = approvaltt.app_gubun) AS app_gubun_nm     /* 결재종류명 */
+		            , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A005' AND code.scode = vacationtt.v_code) AS v_code_nm           /* 근태코드명 */
+		         FROM dbo.approvaltt AS approvaltt          /* 결재 */
+		        INNER JOIN dbo.vacationtt AS vacationtt     /* 근태 */
+		           ON vacationtt.serial = approvaltt.serial
+		        INNER JOIN dbo.membertt AS membertt         /* 회원 */
+		           ON membertt.id = approvaltt.submit_id
+		        WHERE approvaltt.app_gubun = #{appGubun}
+		          AND (approvaltt.app_status <![CDATA[<>]]> '4'
+		       <if test="appId != null and appId != ''">
+		          AND approvaltt.app_id = #{appId}
+		         <if test="appCode != null and appCode != ''">
+		          AND approvaltt.app_code = #{appCode}
+		         </if>
+		       </if>
+		       <if test="app1 != null and app1 != ''">
+		          AND approvaltt.app_1 = #{app1}
+		         <if test="appCode != null and appCode != ''">
+		          AND approvaltt.app_1_code = #{appCode}
+		         </if>
+		          AND approvaltt.app_dt IS NOT NULL
+		       </if>
+		       <if test="app2 != null and app2 != ''">
+		          AND approvaltt.app_2 = #{app2}
+		         <if test="appCode != null and appCode != ''">
+		          AND approvaltt.app_2_code = #{appCode}
+		         </if>
+		          AND approvaltt.app_dt IS NOT NULL
+		       </if>
+		       <if test="app3 != null and app3 != ''">
+		          AND approvaltt.app_3 = #{app3}
+		         <if test="appCode != null and appCode != ''">
+		          AND approvaltt.app_3_code = #{appCode}
+		         </if>
+		          AND approvaltt.app_dt IS NOT NULL
+		       </if>
+		              )
+		       <if test="chiefYn != null and chiefYn eq 'Y'.toString()">
+		           OR approvaltt.app_status = '2'
+		       </if>
+		       ) AS tmp
+		 ORDER BY tmp.serial DESC
+	</select>
+	
+	<select id="selectApprovalRecDetail" resultType="kr.co.m2m.example.demo.api.mypage.model.ApprovalVO">
+		/* api.mypage.mapper.MypageMapper.selectApprovalRecDetail */
+		WITH code AS (
+		             SELECT gcodett.grcode                       /* 공통코드 */
+		                  , gcodett.grcode_nm                    /* 공통코드명 */
+		                  , scodett.scode                        /* 세부코드 */
+		                  , scodett.scode_nm                     /* 세부코드명 */
+		               FROM dbo.gcodett AS gcodett               /* 공통코드(그룹코드) */
+		              INNER JOIN dbo.scodett AS scodett          /* 공통코드(세부코드) */
+		                 ON scodett.grcode = gcodett.grcode
+		             )
+		SELECT approvaltt.serial                     /* 결재serial */
+		     , approvaltt.submit_id                  /* 결재상신ID */
+		     , approvaltt.submit_dt                  /* 결재상신일 */
+		     , approvaltt.app_gubun                  /* 결재종류 */
+		     , approvaltt.app_status                 /* 결재상태 */
+		     , approvaltt.app_id                     /* 결재자ID */
+		     , approvaltt.app_dt                     /* 결재일 */
+		     , approvaltt.app_code                   /* 결재코드 */
+		     , approvaltt.app_content                /* 결재내용 */
+		     , approvaltt.app_1                      /* 대표결재1 */
+		     , approvaltt.app_1_dt                   /* 대표결재1일시 */
+		     , approvaltt.app_1_code AS app_code     /* 결재1코드 */
+		     , approvaltt.app_1_content              /* 결재1사유 */
+		     , approvaltt.app_2                      /* 대표결재2 */
+		     , approvaltt.app_2_dt                   /* 대표결재2일시 */
+		     , approvaltt.app_2_code AS app_code     /* 결재2코드 */
+		     , approvaltt.app_2_content              /* 결재2사유 */
+		     , CONVERT(VARCHAR, CONVERT(DATETIME, vacationtt.s_date), 102) AS s_date     /* 시작일 */
+		     , CONVERT(VARCHAR, CONVERT(DATETIME, vacationtt.e_date), 102) AS e_date     /* 종료일 */
+		     , vacationtt.v_code                     /* 근태코드 */
+		     , vacationtt.v_reason                   /* 근태사유 */
+		     , membertt.name                         /* 이름 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A007' AND code.scode = approvaltt.app_gubun) AS app_gubun_nm     /* 결재종류명 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A005' AND code.scode = vacationtt.v_code) AS v_code_nm           /* 근태코드명 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A002' AND code.scode = membertt.dept) AS dept_nm                 /* 부서명 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A001' AND code.scode = membertt.jikgub) AS jikgub_nm             /* 직급명 */
+		  FROM dbo.approvaltt AS approvaltt          /* 결재 */
+		 INNER JOIN dbo.vacationtt AS vacationtt     /* 근태 */
+		    ON vacationtt.serial = approvaltt.serial
+		 INNER JOIN dbo.membertt AS membertt         /* 회원 */
+		    ON membertt.id = approvaltt.submit_id
+		 WHERE approvaltt.serial = #{serial}
+	</select>
+	
+	<update id="updateApprovalRec">
+		/* api.mypage.mapper.MypageMapper.updateApprovalRec */
+		UPDATE dbo.approvaltt
+		   SET 
+		<if test="appId != null and appId != ''">
+		       app_code = #{appCode}
+		     , app_content = #{appContent}
+		  <if test="appCode neq '3'.toString()">
+		     , app_dt = GETDATE()
+		  </if>
+		</if>
+		<if test="app1 != null and app1 != ''">
+		       app_1_code = #{appCode}
+		     , app_1_content = #{appContent}
+		  <if test="appCode neq '3'.toString()">
+		     , app_1_dt = GETDATE()
+		  </if>
+		</if>
+		<if test="app2 != null and app2 != ''">
+		       app_2_code = #{appCode}
+		     , app_2_content = #{appContent}
+		  <if test="appCode neq '3'.toString()">
+		     , app_2_dt = GETDATE()
+		  </if>
+		</if>
+		<if test="app3 != null and app3 != ''">
+		       app_3_code = #{appCode}
+		     , app_3_content = #{appContent}
+		  <if test="appCode neq '3'.toString()">
+		     , app_3_dt = GETDATE()
+		  </if>
+		</if>
+		 WHERE serial = #{serial}
+	</update>
+	
+	<select id="selectAppStatus" resultType="java.lang.String">
+		/* api.mypage.mapper.MypageMapper.selectAppStatus */
+		SELECT IIF(app_1_dt IS NULL OR app_2_dt IS NULL OR app_3_dt IS NULL, 'N', 'Y') AS appStatus
+		  FROM dbo.approvaltt
+		 WHERE serial = #{serial}
+	</select>
+	
+	<update id="updateAppStatus">
+		/* api.mypage.mapper.MypageMapper.updateAppStatus */
+		UPDATE dbo.approvaltt
+		   SET app_status = #{appCode}
+		 WHERE serial = #{serial}
+	</update>
+	
+	<select id="selectCalendar" resultType="java.lang.String">
+		/* api.mypage.mapper.MypageMapper.selectCalendar */
+		SELECT ymd
+		  FROM dbo.calendartt
+		 WHERE holiday = '1'
+		   AND ymd BETWEEN #{sDate} AND #{eDate}
+	</select>
+	
+	<insert id="insertCalendar">
+		/* api.mypage.mapper.MypageMapper.insertCalendar */
+		INSERT INTO dbo.guntaett
+		     (
+		       v_code
+		     , id
+		     , g_date
+		     , minus_dayoff
+		     )
+		VALUES
+		     (
+		       #{vCode}
+		     , #{submitId}
+		     , #{vDate}
+		     , (SELECT bigo1 FROM dbo.scodett WHERE grcode = 'A005' AND scode = #{vCode})
+		     )
+	</insert>
+	
+	<select id="selectApprovalSenList" resultType="kr.co.m2m.example.demo.api.mypage.model.ApprovalVO">
+		/* api.mypage.mapper.MypageMapper.selectApprovalSenList */
+		WITH code AS (
+		             SELECT gcodett.grcode                       /* 공통코드 */
+		                  , gcodett.grcode_nm                    /* 공통코드명 */
+		                  , scodett.scode                        /* 세부코드 */
+		                  , scodett.scode_nm                     /* 세부코드명 */
+		               FROM dbo.gcodett AS gcodett               /* 공통코드(그룹코드) */
+		              INNER JOIN dbo.scodett AS scodett          /* 공통코드(세부코드) */
+		                 ON scodett.grcode = gcodett.grcode
+		             )
+		SELECT tmp.serial                                                           /* 결재serial */
+		     , tmp.v_reason                                                         /* 근태사유 */
+		     , tmp.app_gubun_nm                                                     /* 결재종류명 */
+		     , tmp.app_status_nm                                                    /* 결재상태명 */
+		     , tmp.v_code_nm                                                        /* 근태코드명 */
+		     , CONVERT(VARCHAR, tmp.app_3_dt, 120) AS app_3_dt                      /* 최종결재일시 */
+		     , (SELECT name FROM dbo.membertt WHERE id = tmp.app_3) AS app_3_nm     /* 최종결재자명 */
+		  FROM (
+		       SELECT approvaltt.serial                     /* 결재serial */
+		            , approvaltt.submit_id                  /* 결재상신ID */
+		            , approvaltt.submit_dt                  /* 결재상신일 */
+		            , approvaltt.app_gubun                  /* 결재종류 */
+		            , approvaltt.app_status                 /* 결재상태 */
+		            , approvaltt.app_id                     /* 결재자ID */
+		            , approvaltt.app_dt                     /* 결재일 */
+		            , approvaltt.app_code                   /* 결재코드 */
+		            , approvaltt.app_content                /* 결재내용 */
+		            , approvaltt.app_1                      /* 대표결재1 */
+		            , approvaltt.app_1_dt                   /* 대표결재1일시 */
+		            , approvaltt.app_1_code                 /* 결재1코드 */
+		            , approvaltt.app_1_content              /* 결재1사유 */
+		            , approvaltt.app_2                      /* 대표결재2 */
+		            , approvaltt.app_2_dt                   /* 대표결재2일시 */
+		            , approvaltt.app_2_code                 /* 결재2코드 */
+		            , approvaltt.app_2_content              /* 결재2사유 */
+		            , vacationtt.s_date                     /* 시작일 */
+		            , vacationtt.e_date                     /* 종료일 */
+		            , vacationtt.v_code                     /* 근태코드 */
+		            , vacationtt.v_reason                   /* 근태사유 */
+		            , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A007' AND code.scode = approvaltt.app_gubun) AS app_gubun_nm      /* 결재종류명 */
+		            , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A009' AND code.scode = approvaltt.app_status) AS app_status_nm    /* 결재상태명 */
+		            , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A005' AND code.scode = vacationtt.v_code) AS v_code_nm            /* 근태코드명 */
+		            , CASE WHEN approvaltt.app_1_dt IS NULL OR approvaltt.app_2_dt IS NULL OR approvaltt.app_3_dt IS NULL OR approvaltt.app_status = '3'
+		                   THEN NULL ELSE IIF(approvaltt.app_1_dt > approvaltt.app_2_dt
+		                                , IIF(approvaltt.app_1_dt > approvaltt.app_3_dt, approvaltt.app_1, approvaltt.app_3)
+		                                , IIF(approvaltt.app_2_dt > approvaltt.app_3_dt, approvaltt.app_2, approvaltt.app_3))
+		              END AS app_3
+		            , CASE WHEN approvaltt.app_1_dt IS NULL OR approvaltt.app_2_dt IS NULL OR approvaltt.app_3_dt IS NULL OR approvaltt.app_status = '3'
+		                   THEN NULL ELSE IIF(approvaltt.app_1_dt > approvaltt.app_2_dt
+		                                , IIF(approvaltt.app_1_dt > approvaltt.app_3_dt, approvaltt.app_1_dt, approvaltt.app_3_dt)
+		                                , IIF(approvaltt.app_2_dt > approvaltt.app_3_dt, approvaltt.app_2_dt, approvaltt.app_3_dt))
+		              END AS app_3_dt
+		         FROM dbo.approvaltt AS approvaltt          /* 결재 */
+		        INNER JOIN dbo.vacationtt AS vacationtt     /* 근태 */
+		           ON vacationtt.serial = approvaltt.serial
+		        WHERE approvaltt.submit_id = #{submitId}
+		       <if test="appCode != null and appCode != ''">
+		          AND approvaltt.app_status = #{appCode}
+		       </if>
+		       ) AS tmp
+		 ORDER BY tmp.serial DESC
+	</select>
+	
+	<select id="selectApprovalSenDetail" resultType="kr.co.m2m.example.demo.api.mypage.model.ApprovalVO">
+		/* api.mypage.mapper.MypageMapper.selectApprovalSenDetail */
+		WITH code AS (
+		             SELECT gcodett.grcode                       /* 공통코드 */
+		                  , gcodett.grcode_nm                    /* 공통코드명 */
+		                  , scodett.scode                        /* 세부코드 */
+		                  , scodett.scode_nm                     /* 세부코드명 */
+		               FROM dbo.gcodett AS gcodett               /* 공통코드(그룹코드) */
+		              INNER JOIN dbo.scodett AS scodett          /* 공통코드(세부코드) */
+		                 ON scodett.grcode = gcodett.grcode
+		             )
+		SELECT approvaltt.serial                     /* 결재serial */
+		     , approvaltt.submit_id                  /* 결재상신ID */
+		     , approvaltt.submit_dt                  /* 결재상신일 */
+		     , approvaltt.app_gubun                  /* 결재종류 */
+		     , approvaltt.app_status                 /* 결재상태 */
+		     , approvaltt.app_id                     /* 결재자ID */
+		     , CONVERT(VARCHAR, approvaltt.app_dt, 120) AS app_dt                        /* 결재일 */
+		     , approvaltt.app_code                   /* 결재코드 */
+		     , approvaltt.app_content                /* 결재내용 */
+		     , approvaltt.app_1                      /* 대표결재1 */
+		     , CONVERT(VARCHAR, approvaltt.app_1_dt, 120) AS app_1_dt                    /* 대표결재1일시 */
+		     , approvaltt.app_1_code                 /* 결재1코드 */
+		     , approvaltt.app_1_content              /* 결재1사유 */
+		     , approvaltt.app_2                      /* 대표결재2 */
+		     , CONVERT(VARCHAR, approvaltt.app_2_dt, 120) AS app_2_dt                    /* 대표결재2일시 */
+		     , approvaltt.app_2_code                 /* 결재2코드 */
+		     , approvaltt.app_2_content              /* 결재2사유 */
+		     , approvaltt.app_3                      /* 대표결재3 */
+		     , CONVERT(VARCHAR, approvaltt.app_3_dt, 120) AS app_3_dt                    /* 대표결재3일시 */
+		     , approvaltt.app_3_code                 /* 결재3코드 */
+		     , approvaltt.app_3_content              /* 결재3사유 */
+		     , CONVERT(VARCHAR, CONVERT(DATETIME, vacationtt.s_date), 102) AS s_date     /* 시작일 */
+		     , CONVERT(VARCHAR, CONVERT(DATETIME, vacationtt.e_date), 102) AS e_date     /* 종료일 */
+		     , vacationtt.v_code                     /* 근태코드 */
+		     , vacationtt.v_reason                   /* 근태사유 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A007' AND code.scode = approvaltt.app_gubun) AS app_gubun_nm       /* 결재종류명 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A005' AND code.scode = vacationtt.v_code) AS v_code_nm             /* 근태코드명 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A010' AND code.scode = approvaltt.app_code) AS app_code_nm         /* 부서장결재상태명 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A010' AND code.scode = approvaltt.app_1_code) AS app_1_code_nm     /* 대표1결재상태명 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A010' AND code.scode = approvaltt.app_2_code) AS app_2_code_nm     /* 대표2결재상태명 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A010' AND code.scode = approvaltt.app_3_code) AS app_3_code_nm     /* 대표3결재상태명 */
+		     , membertt.name                         /* 이름 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A002' AND code.scode = membertt.dept) AS dept_nm                   /* 부서명 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A001' AND code.scode = membertt.jikgub) AS jikgub_nm               /* 직급명 */
+		  FROM dbo.approvaltt AS approvaltt          /* 결재 */
+		 INNER JOIN dbo.vacationtt AS vacationtt     /* 근태 */
+		    ON vacationtt.serial = approvaltt.serial
+		 INNER JOIN dbo.membertt AS membertt         /* 회원 */
+		    ON membertt.id = approvaltt.submit_id
+		 WHERE approvaltt.serial = #{serial}
+	</select>
+	
+	<select id="selectMemberEmail" resultType="java.lang.String">
+		/* api.mypage.mapper.MypageMapper.selectMemberEmail */
+		SELECT email
+		  FROM dbo.membertt
+		 WHERE id = #{submitId}
+	</select>
+	
+	<update id="updateAppStatusEnd">
+		/* api.mypage.mapper.MypageMapper.updateAppStatusEnd */
+		UPDATE approvaltt1
+		   SET 
+		<if test="appId != null and appId != ''">
+		       approvaltt1.app_1_code = (CASE WHEN approvaltt1.app_1_dt IS NULL THEN '4' ELSE approvaltt2.app_1_code END)
+		     , approvaltt1.app_2_code = (CASE WHEN approvaltt1.app_2_dt IS NULL THEN '4' ELSE approvaltt2.app_2_code END)
+		     , approvaltt1.app_3_code = (CASE WHEN approvaltt1.app_3_dt IS NULL THEN '4' ELSE approvaltt2.app_3_code END)
+		</if>
+		<if test="app1 != null and app1 != ''">
+		       approvaltt1.app_2_code = (CASE WHEN approvaltt1.app_2_dt IS NULL THEN '4' ELSE approvaltt2.app_2_code END)
+		     , approvaltt1.app_3_code = (CASE WHEN approvaltt1.app_3_dt IS NULL THEN '4' ELSE approvaltt2.app_3_code END)
+		</if>
+		<if test="app2 != null and app2 != ''">
+		       approvaltt1.app_1_code = (CASE WHEN approvaltt1.app_1_dt IS NULL THEN '4' ELSE approvaltt2.app_1_code END)
+		     , approvaltt1.app_3_code = (CASE WHEN approvaltt1.app_3_dt IS NULL THEN '4' ELSE approvaltt2.app_3_code END)
+		</if>
+		<if test="app3 != null and app3 != ''">
+		       approvaltt1.app_1_code = (CASE WHEN approvaltt1.app_1_dt IS NULL THEN '4' ELSE approvaltt2.app_1_code END)
+		     , approvaltt1.app_2_code = (CASE WHEN approvaltt1.app_2_dt IS NULL THEN '4' ELSE approvaltt2.app_2_code END)
+		</if>
+		  FROM dbo.approvaltt AS approvaltt1
+		 INNER JOIN dbo.approvaltt AS approvaltt2
+		    ON approvaltt2.serial = approvaltt1.serial
+		 WHERE approvaltt2.serial = #{serial}
+	</update>
+	
+	<update id="updatePassword">
+		/* api.mypage.mapper.MypageMapper.updatePassword */
+		UPDATE dbo.membertt
+		   SET pw = #{pwd1}
+		 WHERE id = #{id}
+	</update>
+	
+	<select id="selectManageYn" parameterType="java.lang.String" resultType="java.lang.String">
+		/* api.mypage.mapper.MypageMapper.selectManageYn */
+		SELECT IIF(COUNT(1) > 0, 'Y', 'N') AS manageYn
+		  FROM dbo.scodett
+		 WHERE grcode = 'A008'
+		   AND scode_nm = #{name}
+	</select>
+	
+	<select id="selectManageList" resultType="kr.co.m2m.example.demo.api.mypage.model.ApprovalVO">
+		/* api.mypage.mapper.MypageMapper.selectManageList */
+		WITH code AS (
+		             SELECT gcodett.grcode                       /* 공통코드 */
+		                  , gcodett.grcode_nm                    /* 공통코드명 */
+		                  , scodett.scode                        /* 세부코드 */
+		                  , scodett.scode_nm                     /* 세부코드명 */
+		               FROM dbo.gcodett AS gcodett               /* 공통코드(그룹코드) */
+		              INNER JOIN dbo.scodett AS scodett          /* 공통코드(세부코드) */
+		                 ON scodett.grcode = gcodett.grcode
+		             )
+		SELECT tmp.*
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A010' AND code.scode = tmp.app_code) AS app_code_nm     /* 결재상태명 */
+		  FROM (
+		       SELECT approvaltt.serial                     /* 결재serial */
+		            , approvaltt.submit_id                  /* 결재상신ID */
+		            , approvaltt.submit_dt                  /* 결재상신일 */
+		            , approvaltt.app_gubun                  /* 결재종류 */
+		            , approvaltt.app_status AS app_code     /* 결재상태 */
+		            , approvaltt.app_id                     /* 결재자ID */
+		            , approvaltt.app_dt                     /* 결재일 */
+		            , approvaltt.app_content                /* 결재내용 */
+		            , approvaltt.app_1                      /* 대표결재1 */
+		            , approvaltt.app_1_dt                   /* 대표결재1일시 */
+		            , approvaltt.app_1_content              /* 결재1사유 */
+		            , approvaltt.app_2                      /* 대표결재2 */
+		            , approvaltt.app_2_dt                   /* 대표결재2일시 */
+		            , approvaltt.app_2_content              /* 결재2사유 */
+		            , approvaltt.app_3                      /* 대표결재3 */
+		            , approvaltt.app_3_dt                   /* 대표결재3일시 */
+		            , approvaltt.app_3_content              /* 결재3사유 */
+		            , vacationtt.s_date                     /* 시작일 */
+		            , vacationtt.e_date                     /* 종료일 */
+		            , vacationtt.v_code                     /* 근태코드 */
+		            , vacationtt.v_reason                   /* 근태사유 */
+		            , membertt.name                         /* 이름 */
+		            , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A007' AND code.scode = approvaltt.app_gubun) AS app_gubun_nm     /* 결재종류명 */
+		            , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A005' AND code.scode = vacationtt.v_code) AS v_code_nm           /* 근태코드명 */
+		         FROM dbo.approvaltt AS approvaltt          /* 결재 */
+		        INNER JOIN dbo.vacationtt AS vacationtt     /* 근태 */
+		           ON vacationtt.serial = approvaltt.serial
+		        INNER JOIN dbo.membertt AS membertt         /* 회원 */
+		           ON membertt.id = approvaltt.submit_id
+		        WHERE approvaltt.app_gubun = #{appGubun}
+		          AND approvaltt.app_status = '2'
+		       ) AS tmp
+		 ORDER BY tmp.serial DESC
+	</select>
+	
+	<select id="selectTemplateDetail" resultType="kr.co.m2m.example.demo.api.mypage.model.ApprovalVO">
+		/* api.mypage.mapper.MypageMapper.selectTemplateDetail */
+		SELECT template.gubun
+		     , template.content
+		  FROM dbo.templatett AS template
+		 WHERE template.gubun = #{gubun}
+	</select>
+	
+	<update id="updateTemplate">
+		/* api.mypage.mapper.MypageMapper.updateTemplate */
+		MERGE INTO dbo.templatett AS template
+		USING (SELECT #{gubun} AS gubun) AS tmp
+		   ON (template.gubun = tmp.gubun)
+		 WHEN MATCHED THEN
+		      UPDATE
+		         SET content = #{message}
+		 WHEN NOT MATCHED THEN
+		      INSERT (
+		               gubun
+		             , content
+		             )
+		      VALUES (
+		               #{gubun}
+		             , #{message}
+		             )
+		;
+	</update>
+	
+	<select id="selectMemberList" resultType="kr.co.m2m.example.demo.api.mypage.model.ApprovalVO">
+		/* api.mypage.mapper.MypageMapper.selectMemberList */
+		SELECT id
+		     , name
+		  FROM dbo.membertt
+		 ORDER BY CONVERT(INTEGER, jikgub) ASC
+	</select>
+</mapper>

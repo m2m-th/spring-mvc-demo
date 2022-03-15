@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+	예제 매퍼
+-->
+<mapper namespace="kr.co.m2m.example.demo.api.example.mapper.Example01Mapper">
+	<select id="lookupVacationList" parameterType="kr.co.m2m.example.demo.api.example.model.Example01SO" resultType="kr.co.m2m.example.demo.api.example.model.Example01SO">
+		WITH GEN AS (
+		    SELECT 2002 AS YEAR
+		    UNION ALL
+		    <![CDATA[ 
+		    	SELECT YEAR+1 FROM GEN WHERE YEAR+1 <= DATEPART(YYYY, GETDATE()) 
+		    ]]> 
+		)
+		SELECT CONVERT(VARCHAR(4), YEAR) AS YEAR 
+			FROM GEN
+			where YEAR between 
+				(select CONVERT(NUMERIC, SUBSTRING(s_date, 0,5)) AS YEAR 
+					from membertt 
+					where id = #{id}) 
+			and DATEPART(YYYY, GETDATE())
+			ORDER BY YEAR DESC 
+		OPTION (MAXRECURSION 0)
+	</select>
+	
+	<select id="userList" parameterType="kr.co.m2m.example.demo.api.example.model.Example01SO" resultType="kr.co.m2m.example.demo.api.example.model.Example01SO">
+		SELECT name, id, CASE WHEN id = #{id} THEN '1' ELSE '0' END LOGINID   
+			FROM membertt
+			<if test='chief_yn == "Y" and dept != 1'>
+			WHERE dept = #{dept}
+			</if>
+			<if test='chief_yn == "N" and dept != 1'>
+			WHERE id = #{id}
+			</if>
+			ORDER BY LOGINID desc, name asc
+	</select>
+	
+	<select id="useVacation" parameterType="kr.co.m2m.example.demo.api.example.model.Example01SO" resultType="float">
+		/*api.example.mapper.Example01Mapper.useVacation*/
+		SELECT ISNULL(SUM(minus_dayoff),0) as useDate
+		FROM 	guntaett
+		WHERE 	id = #{id}
+	</select>
+	
+	<select id="usedVacationTable" parameterType="kr.co.m2m.example.demo.api.example.model.Example01SO" resultType="kr.co.m2m.example.demo.api.example.model.Example01SO">
+		SELECT	CONVERT(VARCHAR, CONVERT(NUMERIC ,A.Month)) + '월' as months,
+			ISNULL(B.oneday,'-') as dayOff,
+			ISNULL(B.halfday,'-') as halfOff
+		FROM 
+		(
+			SELECT 	SUBSTRING(ymd,5,2) AS Month 
+			FROM calendartt
+			group by SUBSTRING(ymd,5,2)
+		) a left outer join
+		(
+			SELECT DISTINCT 
+			SUBSTRING(g_date,5,2) as month,
+			STUFF(( 
+				SELECT ',' + SUBSTRING(g_date,7,2) 
+				FROM guntaett b 
+				WHERE b.ID = a.ID 
+				AND b.minus_dayoff = 1
+				FOR XML PATH('')
+			),1,1,'') AS oneday,
+			STUFF(( 
+				SELECT ',' + SUBSTRING(g_date,7,2) 
+				FROM guntaett b 
+				WHERE b.ID = a.ID 
+				AND b.minus_dayoff = 0.5
+				FOR XML PATH('')
+			),1,1,'') AS halfday
+			FROM guntaett a
+			WHERE id = #{id}
+			AND SUBSTRING(g_date,1,4) = '2020'
+		) b
+		on a.month = b.month;
+	</select>
+		   
+		   
+    <!-- 월별 근태 조회  >  캘린더 요소 조회 -->
+    <select id="selectCalendarElement"  parameterType="kr.co.m2m.example.demo.api.example.model.Example01SO"  resultType="kr.co.m2m.example.demo.api.example.model.Example01VO">
+		/* api.example.mapper.Example01Mapper.selectCalendarElement */ 
+        WITH calendar
+		AS
+		(
+   			SELECT ymd  AS ymd 
+   			FROM   calendartt 
+   			WHERE  holiday = '1'       /*  평일 일 때  */
+   			AND    substring(ymd ,1,6) = substring(#{strDate},1,6)
+		 ) ,
+        userVacation AS(
+   			SELECT convert(varchar, dateadd(d,number,B.sDate),112) AS vacationYmd
+     	                ,B.scodeNm                                       AS scodeNm 
+   			FROM master..spt_values A
+    	            ,(
+						SELECT a.s_date   AS sDate 
+			      				   ,a.e_date   AS eDate 
+      	          				   ,a.v_reason AS reason 
+      	                           ,b.scode_nm AS scodeNm
+	        			FROM  vacationtt a, scodett b
+	        			WHERE a.v_code = b.scode 
+	        			AND   a.id = 'wbm'
+	        			AND   substring(a.s_date,1,6) = substring(#{strDate},1,6)
+	        			AND   substring(a.e_date,1,6) = substring(#{strDate},1,6)
+	        			AND   grcode = 'A005'
+    	            ) B 
+         	WHERE A.type='P'
+       <![CDATA[
+         	AND   number <= datediff(d,B.sDate,B.eDate)
+       ]]> 
+        )
+		SELECT  convert(datetime,ymd)     AS dates
+		             ,substring(b.ymd,7,2)       AS dkey
+      				 ,isnull(a.scodeNm,'출근')  AS title
+					 ,(case when a.scodeNm = '월차' then 'bg-red' 
+             				   when a.scodeNm = '오전반차' then 'bg-blue' 
+             				   when a.scodeNm = '오후반차' then 'bg-blue' 
+             				   when a.scodeNm = '출장' then 'bg-indigo' 
+             				   when a.scodeNm = '외근' then 'bg-teal' 
+             				   when a.scodeNm = '병가' then 'bg-orange' else '' end ) AS tempClass  				 
+		FROM  userVacation a 
+		RIGHT OUTER JOIN   calendar b 
+		ON   a.vacationYmd = b.ymd
+		ORDER BY ymd 
+    </select>
+
+	<select id="selectExample01List" resultType="kr.co.m2m.example.demo.api.example.model.Example01VO">
+		/* api.example.mapper.Example01Mapper.selectExample01List */
+		SELECT 
+		       MEMBER_NO
+		     , MEMBER_ID
+			 , FIRST_NAME
+			 , LAST_NAME
+			 , ADDRESS
+			 , CITY
+			 , STATE
+			 , PHONE
+		  FROM dbo.members
+	</select>
+	
+	<select id="searchExample01" resultType="kr.co.m2m.example.demo.api.example.model.Example01VO">
+		/* api.example.mapper.Example01Mapper.searchExample01 */
+		SELECT 
+		       MEMBER_NO
+		     , MEMBER_ID
+			 , FIRST_NAME
+			 , LAST_NAME
+			 , ADDRESS
+			 , CITY
+			 , STATE
+			 , PHONE
+		  FROM dbo.members
+		 WHERE 1 = 1
+		   AND MEMBER_NO = #{memberNo}
+	</select>
+	
+	<!--  등록 -->
+	<insert id="insertExample01">
+		INSERT INTO dbo.members
+			(
+			      MEMBER_ID
+				, FIRST_NAME
+				, LAST_NAME
+				, ADDRESS
+				, CITY
+				, STATE
+				, PHONE
+			)
+			VALUES
+			(
+			      #{memberId}
+				, #{firstName}
+				, #{lastName}
+				, #{address}
+				, #{city}
+				, #{state}
+				, #{phone}
+			)
+	</insert>	
+
+	<!--  수정 -->
+	<update id="updateExample01">
+		UPDATE	dbo.members
+		SET
+		      MEMBER_ID = #{memberId}					  
+			, FIRST_NAME = #{firstName}
+			, LAST_NAME = #{lastName}
+			, ADDRESS = #{address}
+			, CITY = #{city}
+			, STATE = #{state}
+			, PHONE = #{phone}
+		WHERE MEMBER_NO = #{memberNo}
+	</update>	
+
+	<!--  삭제 -->
+	<delete id="deleteExample01">
+		DELETE FROM dbo.members
+		WHERE MEMBER_NO = #{memberNo}
+	</delete>	
+</mapper>

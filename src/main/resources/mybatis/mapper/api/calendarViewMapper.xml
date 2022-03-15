@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+	예제 매퍼
+-->
+<mapper namespace="kr.co.m2m.example.demo.api.calendarView.mapper.CalendarViewMapper">
+	<select id="selectCalYearsList" resultType="kr.co.m2m.example.demo.api.calendarView.model.CalendarViewSO">
+		/* api.mapper.CalendarViewMapper.selectCalYearsList */
+		SELECT (CASE WHEN s2.scode_nm = '평일' THEN '' ELSE s2.scode_nm END) AS title
+			 , RIGHT(c.ymd ,2) AS dkey
+			 , (CASE WHEN c.holiday = '1' THEN '' 
+			 	WHEN c.holiday = '2' THEN 'font-red-style'
+			 	WHEN c.holiday = '3' THEN 'font-red-style'
+			 	WHEN c.holiday = '4' THEN 'font-red-style'
+			 	WHEN c.holiday = '5' THEN 'font-red-style' END) AS tempClass
+			 , LEFT(c.ymd ,4) AS years
+		 	 , SUBSTRING(ymd, 5,2) -1 AS months
+		FROM calendartt c, scodett s2
+		WHERE LEFT(c.ymd ,6) = #{strDate}
+		AND s2.grcode = 'A004'
+		AND c.holiday = s2.scode
+	</select>
+	
+	<select id="selectCalYearsCnt" resultType="Int">
+		/* api.mapper.CalendarViewMapper.selectCalYearsCnt */
+		SELECT COUNT(ymd) AS CNT
+		FROM (
+			SELECT LEFT(ymd,4) AS ymd 
+			FROM calendartt
+			GROUP BY LEFT(ymd,4)
+			HAVING LEFT(ymd,4) = #{mYears}
+		)A
+	</select>
+	
+	<select id="selectHolidayList" resultType="kr.co.m2m.example.demo.api.calendarView.model.CalendarViewSO">
+		/* api.mapper.CalendarViewMapper.selectHolidayList */
+		SELECT s.grcode
+			 , s.scode
+			 , s.scode_nm AS scodeNm
+			 , s.use_yn AS useYn
+			 , s.bigo1
+			 , s.bigo2
+			 , s.bigo3
+		FROM scodett s
+		WHERE s.grcode = 'A004'
+		AND s.use_yn = 'Y'
+	</select>
+	
+
+
+	<insert id="saveCalYearsList">
+		/* api.calendarView.mapper.CalendarViewMapper.saveCalYearsList */
+		INSERT INTO calendartt
+		SELECT B.ymd AS ymd
+			 , B.day AS day
+<!-- 			 , (CASE WHEN B.day = '1' OR B.day = '7' THEN '2' ELSE '1' END) AS holiday -->
+			 , '1' AS holiday
+			 , B.weeks AS weeks 
+		FROM (
+			SELECT A.ymd
+				 , (DATEPART(dw, DATEADD (DAY, DATEDIFF (DAY, 0,convert(varchar(10),A.ymd,120)), 0)) -1) + 1 AS day
+				 , DATEPART(WEEK,A.ymd) AS weeks
+			FROM (
+				SELECT convert(varchar, dateadd(d,number,#{mYears}),112) AS ymd
+				FROM master..spt_values A
+				WHERE A.type='P'
+				AND   number <![CDATA[<]]> datediff(d,#{mYears},CONVERT(NVARCHAR, CONVERT(INT,#{mYears})+1))
+			)A
+		)B
+	</insert>
+	
+	
+	
+	<update id="registHoliday">
+		/* api.calendarView.mapper.CalendarViewMapper.registHoliday */
+		UPDATE calendartt
+		SET holiday = #{holiday}
+		WHERE ymd = #{strDate}
+	</update>
+	
+	
+	
+	<delete id="deleteCalYearsList">
+		DELETE
+		FROM calendartt 
+		WHERE LEFT(ymd, 4) = #{mYears}
+	</delete>
+	
+	
+	
+	<update id="registFixedHoliday">
+		/* api.calendarView.mapper.CalendarViewMapper.registFixedHoliday */
+		UPDATE calendartt set holiday ='2' 
+		WHERE LEFT(ymd, 4) = #{mYears}
+		AND SUBSTRING(ymd,5,4) IN 
+		('0101' /* 신정 */
+		,'0301' /* 삼일절 */
+		,'0501' /* 근로자의날 */
+		,'0505' /* 어린이날 */
+		,'0606' /* 현충일 */
+		,'0815' /* 광복절 */
+		,'1225') /* 크리스마스 */
+	</update>
+	
+</mapper>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+	예제 매퍼
+-->
+<mapper namespace="kr.co.m2mglobal.vuetest.api.commonCode.mapper.CommonCodeMapper">
+
+	<select id="selectCommonCodeList" resultType="kr.co.m2m.example.demo.api.commonCode.model.CommonCodeVO">
+		/* api.example.mapper.CommonCodeMapper.selectCommonCodeList */
+		SELECT 
+		       GRCODE
+			 , GRCODE_NM
+			 , USE_YN as gUseYn
+		  FROM dbo.gcodett
+	</select>
+				
+	<select id="searchCommonCode" resultType="kr.co.m2m.example.demo.api.commonCode.model.CommonCodeVO">
+		/* api.example.mapper.CommonCodeMapper.searchCommonCode */
+		 SELECT S.GRCODE as grCode
+		 	  , GRCODE_NM
+		 	  , G.USE_YN as guseYn
+		 	  , SCODE
+		 	  , SCODE_NM
+		 	  , PRIORITY
+		 	  , S.USE_YN as suseYn
+		 	  ,	BIGO1
+		 	  , BIGO2
+		 	  , BIGO3
+		  FROM GCODETT G , SCODETT S 
+		 WHERE G.GRCODE_NM = #{grCodeNm}
+		   AND G.GRCODE = S.GRCODE
+		   ORDER BY SCODE+0
+	</select>
+	
+	<!--  등록 -->
+	<insert id="insertCommonCode">
+		INSERT INTO dbo.gcodett
+			(
+			   GRCODE
+			 , GRCODE_NM
+			 , USE_YN
+			)
+			VALUES
+			(
+			   #{grCode}
+			 , #{grCodeNm}
+			 , #{guseYn}
+			)
+	</insert>	
+	<insert id="insertSCode">
+		INSERT INTO dbo.scodett 
+			(
+			  GRCODE
+			 ,SCODE
+			 ,SCODE_NM
+			 ,PRIORITY
+			 ,USE_YN 
+			 ,BIGO1, BIGO2, BIGO3
+			)
+			VALUES
+			(
+			 #{grCode}
+		    ,#{scode}
+			,#{scodeNm}
+			,#{priority}
+		    ,#{suseYn}
+			,#{bigo1}
+			,#{bigo2}
+			,#{bigo3}
+			);
+		
+	</insert>
+	<!--  수정 -->
+	<update id="updateCommonCode">
+		UPDATE	dbo.gcodett
+		SET					  
+			  GRCODE_NM = #{grCodeNm}
+			, USE_YN = #{guseYn}
+		WHERE GRCODE = #{grCode}	
+	</update>
+	
+	<update id="updateSCode">
+	UPDATE	dbo.scodett 
+		SET					 
+			  SCODE_NM = #{scodeNm}
+			, PRIORITY = #{priority}
+			, USE_YN = #{suseYn}
+			, BIGO1 = #{bigo1}
+		WHERE GRCODE = #{grCode}
+		AND SCODE = #{scode}
+	</update>
+</mapper>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+	부서원 추가 매퍼
+-->
+
+<mapper namespace="kr.co.m2m.example.demo.api.deptMember.mapper.MemberMapper">
+    <insert id="insertAcnt">
+      	IF EXISTS (SELECT 1 FROM dbo.yearcnttt WHERE id = #{id} AND year = #{year}) 
+		BEGIN 
+		UPDATE dbo.yearcnttt 
+   		   SET  
+               a_cnt = #{a_cnt}
+        WHERE id= #{id} and year = #{year}
+        END 
+		ELSE 
+		BEGIN 
+		INSERT INTO dbo.yearcnttt (year, id, a_cnt) 
+		VALUES (#{year},#{id}, #{a_cnt})
+		END; 
+    </insert>
+	<insert id="insertMember">
+		INSERT INTO dbo.membertt 
+			(
+				 ID
+				,PW
+				,NAME
+				,DEPT
+				,JIKGUB
+				,S_DATE
+				,CHIEF_YN
+				,RETIRE
+				,EMAIL
+			) 
+		VALUES
+			(
+				#{id}
+			   ,#{pw}
+			   ,#{name}
+			   ,#{dept}
+			   ,#{jikgub}
+			   ,#{sdate}
+			   ,#{chiefYn}
+			   ,#{retire}
+			   ,#{email}
+			   )
+	</insert>
+	<select id="selectDept" resultType="kr.co.m2m.example.demo.api.deptMember.model.SCodeVO">
+		 SELECT SCODE_NM scodeNm,  /*세부코드명*/
+		        SCODE     /*세부코드*/
+		   FROM SCODETT 
+		   WHERE GRCODE='A002'     /*부서*/
+	</select>
+	<select id="selectJikgubList" resultType="kr.co.m2m.example.demo.api.deptMember.model.SCodeVO">
+		SELECT SCODE,
+			   SCODE_NM scodeNm    /*세부코드명*/
+	      FROM SCODETT s      
+	     WHERE GRCODE = 'A001'    /*직급*/ 
+	     ORDER BY PRIORITY + 10
+	</select>
+	<select id="selectDeptMemList" resultType="kr.co.m2m.example.demo.api.deptMember.model.SCodeVO">
+		 SELECT NAME,
+		 		ID,
+		 		SCODE_NM scodeNm,
+		 		s.scode,
+		 		(SELECT SCODE_NM
+				   FROM SCODETT S 
+				  WHERE GRCODE ='A001'
+					AND M2.JIKGUB  = S.SCODE
+		 		)JIKGUB,
+		 		(SELECT SCODE
+				   FROM SCODETT S 
+				  WHERE GRCODE ='A001'
+					AND M2.JIKGUB  = S.SCODE
+				)jScode,
+		 		CHIEF_YN chiefYn,
+		 		S_DATE sdate,
+		 		EMAIL,
+		 		M2.retire,
+				M2.retire_dt
+			FROM MEMBERTT M2,SCODETT S 
+			WHERE GRCODE='A002' 
+			AND SCODE = M2.DEPT
+			AND S.SCODE = #{scode}
+			AND RETIRE = 'N'
+			ORDER BY JIKGUB+10
+	</select>
+	<select id="checkChiefYn" resultType="kr.co.m2m.example.demo.api.deptMember.model.SCodeVO">
+		SELECT m.id
+			 , m.name
+		FROM membertt m 
+		WHERE m.dept = #{scode}
+		  AND m.chief_yn = 'Y'
+	</select>
+	<update id="updateMember">
+		UPDATE dbo.membertt 
+		   SET name = #{name},
+	           dept = #{dept},
+			   jikgub = #{jikgub},
+			   chief_yn = #{chiefYn},
+			   s_date = #{sdate},
+			   retire = #{retire},
+			   retire_dt = #{retireDt},
+			   email = #{email}
+			   WHERE id = #{id}
+	</update>
+	<select id="checkId" resultType="kr.co.m2m.example.demo.api.deptMember.model.MemberPO">
+		SELECT id 
+		  FROM dbo.membertt
+		  WHERE id = #{id}
+	</select>
+</mapper>

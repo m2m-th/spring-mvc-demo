@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.m2m.example.demo.api.login.mapper.LoginMapper">
+
+	<select id="selectMember" resultType="kr.co.m2m.example.demo.api.login.model.LoginVO">
+		/* api.login.mapper.LoginMapper.selectMember */
+		WITH code AS (
+		             SELECT gcodett.grcode                       /* 공통코드 */
+		                  , gcodett.grcode_nm                    /* 공통코드명 */
+		                  , scodett.scode                        /* 세부코드 */
+		                  , scodett.scode_nm                     /* 세부코드명 */
+		               FROM dbo.gcodett AS gcodett               /* 공통코드(그룹코드) */
+		              INNER JOIN dbo.scodett AS scodett          /* 공통코드(세부코드) */
+		                 ON scodett.grcode = gcodett.grcode
+		             )
+		SELECT membertt.id                                       /* 아이디 */
+		     , membertt.pw                                       /* 비밀번호 */
+		     , membertt.name                                     /* 이름 */
+		     , membertt.dept                                     /* 부서코드 */
+		     , membertt.jikgub                                   /* 직급코드 */
+		     , membertt.s_date                                   /* 입사일 */
+		     , CASE ISNULL(membertt.chief_yn, 'N') WHEN '' THEN 'N'
+		                                           ELSE ISNULL(membertt.chief_yn, 'N')
+		       END chief_yn                                      /* 부서장여부 */
+		     , CASE ISNULL(membertt.retire, 'N') WHEN '' THEN 'N'
+		                                         ELSE ISNULL(membertt.retire, 'N')
+		       END retire                                        /* 퇴직여부 */
+		     , membertt.retire_dt                                /* 퇴직일자 */
+		     , membertt.email                                    /* 이메일 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A002' AND code.scode = membertt.dept) AS dept_nm         /* 부서명 */
+		     , (SELECT code.scode_nm FROM code WHERE code.grcode = 'A001' AND code.scode = membertt.jikgub) AS jikgub_nm     /* 직급명 */
+		  FROM dbo.membertt AS membertt                          /* 회원 */
+		 WHERE membertt.id = #{id}
+	</select>
+</mapper>

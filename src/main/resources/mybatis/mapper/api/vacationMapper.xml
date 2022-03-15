@@ -1,0 +1,770 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.m2m.example.demo.api.vacation.mapper.VacationMapper">	
+	<select id="selectCalendarElement"  parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO"  resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaePO">
+		/* api.vacation.mapper.VacationMapper.selectCalendarElement */		
+	     WITH calendar
+	   AS
+	   (
+	         SELECT  a.ymd          AS ymd
+	                ,b.scode_nm     AS scodeNm
+	                ,b.scode        AS scode
+	                ,a.day          AS day
+	                ,a.holiday      AS holiday
+	         FROM   calendartt a, scodett b
+	         WHERE  a.holiday = b.scode 
+	         AND    substring(a.ymd,1,6)  = trim(#{strDate})
+	          AND    b.grcode = 'A004'            
+	    ) ,
+	     userVacation AS(
+	               SELECT  a.g_date        AS vacationYmd 
+	                      ,b.scode_nm      AS scodeNm
+	                      ,b.scode         AS scode
+	                      ,a.minus_dayoff  AS minusDayoff
+	                      ,a.v_code AS vCode
+	                 FROM  guntaett a, scodett b                 
+	                 WHERE a.v_code = b.scode
+	                 AND   a.id = #{id}
+	                 AND   substring(a.g_date,1,6) = trim(#{strDate})
+	                 AND   grcode = 'A005'                
+	     )
+	   SELECT  convert(datetime,ymd)           AS dates
+	                ,substring(b.ymd,1,4)      AS  year 
+	                ,substring(b.ymd,5,2)-1    AS  month      
+	                ,substring(b.ymd,7,2)      AS  dkey
+	                ,(case when b.day = '1' then  
+	                    case when b.scodeNm = '법정공휴일' then '' else b.scodeNm end 
+	                      when b.day = '7' then 
+	                    case when b.scodeNm = '법정공휴일' then '' else b.scodeNm end
+	                 else isnull(a.scodeNm , case when b.scodeNm = '평일' then '출근' else b.scodeNm end ) 
+	                 end )AS title
+	             ,(case when a.scodeNm = '연차' then 'bg-red' 
+	                         when a.scodeNm = '오전반차' then 'bg-blue' 
+	                         when a.scodeNm = '오후반차' then 'bg-blue' 
+	                         when a.scodeNm = '출장' then 'bg-indigo' 
+	                         when a.scodeNm = '외근' then 'bg-teal' 
+	                         when a.scodeNm = '병가' then 'bg-orange'
+	                         when b.scode = '1' then 'font-dark-style'
+	                         when b.scode = '2' then 'font-red-style' 
+	                         when b.scode = '3' then 'font-red-style' 
+	                         when b.scode = '4' then 'font-red-style'
+	                         when b.scode = '5' then 'font-red-style' end ) AS tempClass      
+	                ,ISNULL(a.minusDayoff,0) AS minus
+	                ,ISNULL(a.vCode,0) AS vCode
+	   FROM  userVacation a 
+	   RIGHT OUTER JOIN   calendar b 
+	   ON   a.vacationYmd = b.ymd
+	   ORDER BY ymd
+	</select>
+	
+	<select id="selectCalendarElement_ForceDel"  parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO"  resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaePO">
+		/* api.vacation.mapper.VacationMapper.selectCalendarElement_ForceDel */		
+	     WITH calendar
+	   AS
+	   (
+	         SELECT  a.ymd          AS ymd
+	                ,b.scode_nm     AS scodeNm
+	                ,b.scode        AS scode
+	                ,a.day          AS day
+	                ,a.holiday      AS holiday
+	         FROM   calendartt a, scodett b
+	         WHERE  a.holiday = b.scode 
+	         AND    substring(a.ymd,1,6)  = trim(#{strDate})
+	          AND    b.grcode = 'A004'            
+	    ) ,
+	     userVacation AS(
+	               SELECT  a.g_date        AS vacationYmd 
+	                      ,b.scode_nm      AS scodeNm
+	                      ,b.scode         AS scode
+	                      ,a.minus_dayoff  AS minusDayoff
+	                      ,a.v_code AS vCode
+	                 FROM  guntaett a, scodett b                 
+	                 WHERE a.v_code = b.scode 
+	                 AND   a.id = #{id}
+	                 AND   substring(a.g_date,1,6) = trim(#{strDate})
+	                 AND   grcode = 'A005'                
+	     )
+	   SELECT  convert(datetime,ymd)           AS dates
+	                ,substring(b.ymd,1,4)      AS  year 
+	                ,substring(b.ymd,5,2)-1    AS  month      
+	                ,substring(b.ymd,7,2)      AS  dkey
+	                ,(case when b.day = '1' then  
+	                    case when b.scodeNm = '법정공휴일' then '' else b.scodeNm end 
+	                      when b.day = '7' then 
+	                    case when b.scodeNm = '법정공휴일' then '' else b.scodeNm end
+	                 else isnull(a.scodeNm , case when b.scodeNm = '평일' then '출근' else b.scodeNm end ) 
+	                 end )AS title
+	             ,(case when a.scodeNm = '연차' then 'bg-red' 
+	                         when a.scodeNm = '오전반차' then 'bg-blue' 
+	                         when a.scodeNm = '오후반차' then 'bg-blue' 
+	                         when a.scodeNm = '출장' then 'bg-indigo' 
+	                         when a.scodeNm = '외근' then 'bg-teal' 
+	                         when a.scodeNm = '병가' then 'bg-orange'
+	                         when b.scode = '1' then 'font-dark-style'
+	                         when b.scode = '2' then 'font-red-style' 
+	                         when b.scode = '3' then 'font-red-style' 
+	                         when b.scode = '4' then 'font-red-style'
+	                         when b.scode = '5' then 'font-red-style' end ) AS tempClass       
+	                ,ISNULL(a.minusDayoff,0) AS minus
+	                ,ISNULL(a.vCode,0) AS vCode
+	   FROM  userVacation a 
+	   RIGHT OUTER JOIN   calendar b 
+	   ON   a.vacationYmd = b.ymd
+	   ORDER BY ymd
+	</select>	
+	
+	<select id="selectCalendarYear" resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaePO">
+		/* api.vacation.mapper.VacationMapper.selectCalendarYear */	
+    SELECT distinct substring(ymd,1,4) year
+    FROM   calendartt
+	</select>
+	
+	<select id="selectScodeA005" resultType="kr.co.m2m.example.demo.api.vacation.model.ScodeVO">
+		/* api.vacation.mapper.VacationMapper.selectScodeA005 */
+		SELECT 
+			SCODE,
+			SCODE_NM
+		 FROM SCODETT
+		 WHERE GRCODE = #{grCode}
+		 ORDER BY PRIORITY
+	</select>
+	
+	<select id="checkDuplVacation" resultType="String">
+	/* api.vacation.mapper.VacationMapper.checkDuplVacation */
+		SELECT serial
+		FROM dbo.vacationtt
+		WHERE ID = #{id}
+		AND S_DATE = #{s_date}
+		AND E_DATE = #{e_date}
+		AND V_CODE = #{v_code}
+	</select>
+	
+	<select id="selectAppStatus" resultType="String" parameterType="String">
+	/* api.vacation.mapper.VacationMapper.selectAppStatus */
+		SELECT APP_STATUS
+		FROM APPROVALTT
+		WHERE SERIAL = #{serial}
+	</select>
+	
+	<select id="insertTmpSave" resultType="Integer">
+	/* api.vacation.mapper.VacationMapper.insertTmpSave */
+		INSERT INTO dbo.vacationtt
+			(
+				  ID
+				, S_DATE
+				, E_DATE
+				, V_CODE
+				, V_REASON
+			)
+			VALUES
+			(
+				  #{id}
+				, #{s_date}
+				, #{e_date}
+				, #{v_code}
+				, #{v_reason}				
+			)
+		SELECT @@IDENTITY AS SEQ
+	</select>
+	
+	<update id="updateTmpSaveReason" parameterType="kr.co.m2m.example.demo.api.vacation.model.VacationVO">
+	/* api.vacation.mapper.VacationMapper.updateTmpSaveReason */
+		UPDATE dbo.vacationtt
+		SET V_REASON = #{v_reason}
+		WHERE SERIAL = #{serial}
+	</update>
+	
+	<select id="checkDuplApprove" resultType="Integer">
+	/* api.vacation.mapper.VacationMapper.checkDuplApprove */
+		SELECT ISNULL(COUNT(*), 0)
+			FROM dbo.approvaltt
+			WHERE serial = #{serial}
+	</select>
+	
+	<insert id="reqApprove">
+	/* api.vacation.mapper.VacationMapper.reqApprove */
+		INSERT INTO dbo.approvaltt
+			(
+				  serial
+				, submit_id
+				, submit_dt
+				, app_id 
+				, app_dt
+				, app_code 
+				, app_content 
+				, app_gubun
+				, app_status 
+				, app_1
+				, app_1_dt
+				, app_1_code 
+				, app_1_content 
+				, app_2
+				, app_2_dt 
+				, app_2_code 
+				, app_2_content 
+				, app_3
+				, app_3_dt
+				, app_3_code
+				, app_3_content 
+			)
+			VALUES
+			(
+				  #{serial} 
+				, #{submitId} 
+				, GETDATE()
+				, (SELECT MAX(ID) 
+					FROM dbo.membertt v
+					WHERE v.dept = (
+							SELECT m.dept
+							FROM dbo.membertt m
+							WHERE ID = #{submitId}
+						)
+					AND chief_yn = 'Y')
+				, null
+				, '1'
+				, null
+				, (SELECT SCODE
+					FROM dbo.scodett s
+					WHERE s.grcode = 'A007'
+					AND scode_nm = '근태')
+				, (SELECT SCODE
+					FROM dbo.scodett s
+					WHERE s.grcode = 'A009'
+					AND s.scode_nm = #{appStatus})
+				, (SELECT bigo2
+					FROM dbo.scodett s
+					WHERE s.grcode = 'A011'
+					AND s.scode = '1')
+				, null
+				, '1'
+				, null
+				, (SELECT bigo2
+					FROM dbo.scodett s
+					WHERE s.grcode = 'A011'
+					AND s.scode = '2')
+				, null
+				, '1'
+				, null
+				, (SELECT bigo2
+					FROM dbo.scodett s
+					WHERE s.grcode = 'A011'
+					AND s.scode = '3')
+				, null
+				, '1'
+				, null
+			)
+	</insert>
+	
+	<update id="updateAppStatus">
+	/* api.vacation.mapper.VacationMapper.updateAppStatus */
+		UPDATE dbo.approvaltt
+			SET app_status = (SELECT s.scode
+								FROM dbo.scodett s
+								WHERE s.grcode = 'A009'
+								AND scode_nm = #{appStatus})
+			WHERE serial = #{serial}
+	</update>
+	
+	<select id="selectHoliday" resultType="kr.co.m2m.example.demo.api.vacation.model.CalendarPO">
+	/* api.vacation.mapper.VacationMapper.selectHoliday */
+		SELECT c.ymd
+		FROM dbo.calendartt c
+		WHERE holiday != 1
+	</select>
+	
+	<select id="selectAllMembersDayOffList" resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaePO">
+	/* api.vacation.mapper.VacationMapper.selectAllMembersDayOffList */
+		SELECT
+			  M.ID
+			, M.NAME
+			, M.DEPT
+			, M.JIKGUB
+			, ISNULL(SUM(Y.A_CNT), 0) AS A_CNT
+			, ISNULL(SUM(Y.SUM_MINUS_DAYOFF), 0) AS SUM_MINUS_DAYOFF
+		  FROM MEMBERTT M
+		  LEFT OUTER JOIN (
+		  					SELECT 
+		  						  Y.ID
+		  						, SUM(Y.A_CNT) AS A_CNT
+		  						, 0 AS SUM_MINUS_DAYOFF
+		  					  FROM YEARCNTTT Y, MEMBERTT M
+		  					  WHERE Y.ID = M.ID
+		  					  <![CDATA[
+		  					  AND Y.YEAR = (CASE WHEN SUBSTRING(M.S_DATE, 5, 2) > #{month} THEN #{gDate}
+		  					  					ELSE CONVERT(VARCHAR, CONVERT(INT, #{gDate}) + 1) END)
+		  					  ]]> 
+		  					  GROUP BY Y.ID
+		  					UNION ALL		  					  	
+		  					SELECT 
+		  						  G.ID
+		  					  	, 0 AS A_CNT
+		  					  	, SUM(G.MINUS_DAYOFF) AS SUM_MINUS_DAYOFF
+		  					  FROM GUNTAETT G, MEMBERTT M
+		  					  WHERE G.ID = M.ID
+		  					  AND LEFT(G.g_date, 6) BETWEEN CONCAT(
+		  					  								<![CDATA[
+		  					  									(CASE WHEN SUBSTRING(M.S_DATE, 5, 2) > #{month}
+		  					  								]]>
+		  					  									 THEN CONVERT(VARCHAR, CONVERT(INT, #{gDate}) -1)
+		  					  									 ELSE #{gDate} END)
+		  					  									, SUBSTRING(M.S_DATE, 5, 2)
+		  					  									)
+		  					  						  AND CONCAT(
+		  					  						  		<![CDATA[
+		  					  									(CASE WHEN SUBSTRING(M.S_DATE, 5, 2) > #{month}
+		  					  								]]> 
+		  					  									 THEN #{gDate}
+		  					  									 ELSE CONVERT(VARCHAR, CONVERT(INT, #{gDate}) +1) END)
+		  					  									, SUBSTRING(M.S_DATE, 5, 2)
+		  					  									)
+		  					  
+		  					  GROUP BY G.ID  
+		  					) Y
+		  ON M.ID = Y.ID
+		  	<![CDATA[
+		  		WHERE LEFT(M.S_DATE, 4) <= #{gDate}
+		  	]]> 
+		  GROUP BY M.ID, M.NAME, M.DEPT, M.JIKGUB
+		  ORDER BY (SELECT
+		  				PRIORITY
+		  			FROM SCODETT
+		  			WHERE GRCODE = 'A001'
+		  			AND SCODE = M.JIKGUB)
+	</select>
+	
+	<select id="selectMembersDayOffList" parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO" resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaePO">
+	/* api.vacation.mapper.VacationMapper.selectMembersDayOffList */
+		SELECT
+			  ISNULL(SUM(Y.A_CNT), 0) AS A_CNT
+			, ISNULL(SUM(Y.SUM_MINUS_DAYOFF), 0) AS SUM_MINUS_DAYOFF
+		  FROM MEMBERTT M
+		  , (
+				SELECT 
+					  ID
+					, A_CNT AS A_CNT
+					, 0 AS SUM_MINUS_DAYOFF
+				  FROM YEARCNTTT
+				  WHERE YEAR = #{gDate}
+				  AND ID = #{id}
+				UNION ALL		  					  	
+				SELECT 
+					  ID
+				  	, 0 AS A_CNT
+				  	, SUM(MINUS_DAYOFF) AS SUM_MINUS_DAYOFF
+				  FROM GUNTAETT
+				  WHERE LEFT(g_date, 4) = #{gDate}
+				  GROUP BY ID 
+				  HAVING ID = #{id}
+			) Y
+		  WHERE M.ID = Y.ID
+		  	<![CDATA[
+		  		AND LEFT(M.S_DATE, 4) <= #{gDate}
+		  	]]>
+	</select>
+	
+	
+	<select id="selectUsersOffDay" parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO" resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaePO">
+	/* api.vacation.mapper.VacationMapper.selectUsersOffDay */
+		with TABLE_A (CLASS, NAME) AS (
+      SELECT '01', case when substring(g_date,5,2) = '01' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '01' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '02', case when substring(g_date,5,2) = '02' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '02' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '03', case when substring(g_date,5,2) = '03' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '03' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '04', case when substring(g_date,5,2) = '04' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '04' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '05', case when substring(g_date,5,2) = '05' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '05' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '06', case when substring(g_date,5,2) = '06' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '06' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '07', case when substring(g_date,5,2) = '07' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '07' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '08', case when substring(g_date,5,2) = '08' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '08' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '09', case when substring(g_date,5,2) = '09' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '09' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '10', case when substring(g_date,5,2) = '10' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '10' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '11', case when substring(g_date,5,2) = '11' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '11' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '12', case when substring(g_date,5,2) = '12' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '12' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 
+      ), TABLE_B (CLASS, NAME) AS (
+      SELECT '01', case when substring(g_date,5,2) = '01' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '01' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '02', case when substring(g_date,5,2) = '02' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '02' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+       SELECT '03', case when substring(g_date,5,2) = '03' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '03' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '04', case when substring(g_date,5,2) = '04' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '04' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '05', case when substring(g_date,5,2) = '05' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '05' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '06', case when substring(g_date,5,2) = '06' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '06' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '07', case when substring(g_date,5,2) = '07' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '07' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '08', case when substring(g_date,5,2) = '08' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '08' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+      SELECT '09', case when substring(g_date,5,2) = '09' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '09' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '10', case when substring(g_date,5,2) = '10' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '10' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '11', case when substring(g_date,5,2) = '11' then substring(g_date,7,2) else '' end from guntaett   where id = 'wbm' and substring(g_date,5,2) = '11' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+        SELECT '12', case when substring(g_date,5,2) = '12' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '12' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 
+      )
+      SELECT       B.month as months,
+               ISNULL(oneday,'-') as dayOff,
+               ISNULL(halfday,'-') as halfOff
+            from 
+      (
+         SELECT    CLASS,
+                  stuff(
+                  (
+                   select ',' + NAME
+                   from TABLE_A  
+                   where CLASS = A.CLASS
+                   FOR XML PATH('')
+                   ),1,1,'') AS 'oneday',
+                   stuff(
+                  (
+                    select ',' + NAME
+                    from TABLE_B  
+                    where CLASS = A.CLASS
+                    FOR XML PATH('')
+                    ),1,1,'') AS 'halfday'
+         from TABLE_A AS A 
+      ) A 
+      Right OUTER JOIN 
+      (
+         SELECT    SUBSTRING(ymd,5,2) AS Month
+         FROM calendartt
+         group by SUBSTRING(ymd,5,2)
+      ) B
+      ON A.class = b.Month
+      group by B.Month, A.CLASS, A.oneday, A.halfday
+	</select> 
+	
+	<select id="selectMembersDayOffCount" parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO" resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaeVO">
+	/* api.vacation.mapper.VacationMapper.selectMembersDayOffCount */	/* 배치완료되면 ant 결과값에 추가하기 */
+		<![CDATA[
+		IF ( (SELECT 1 as standard 
+				FROM MEMBERTT
+				WHERE SUBSTRING(S_DATE,5,2) > SUBSTRING(CONVERT(VARCHAR(8) ,GETDATE(),112),5,2)
+				AND ID = #{id}) 
+			> 0)
+		SELECT	ISNULL(SUM(G.minus_dayoff),0) AS SUM_MINUS_DAYOFF
+			from GUNTAETT G
+			where SUBSTRING(CONVERT(VARCHAR(8) ,g_date,112),1,6)
+						>= (SELECT SUBSTRING(CONVERT(VARCHAR(8),DATEADD(month,-12,GETDATE()),112),1,4) 
+								+ SUBSTRING(s_date, 5,2)
+							FROM MEMBERTT m
+							WHERE id = #{id})
+			AND G.id = #{id}
+		ELSE
+		SELECT	ISNULL(SUM(G.minus_dayoff),0) AS SUM_MINUS_DAYOFF
+			from GUNTAETT G
+			where SUBSTRING(CONVERT(VARCHAR(8) ,g_date,112),1,6)  
+						<= (SELECT SUBSTRING(CONVERT(VARCHAR(8),DATEADD(month,12, GETDATE()),112),1,4) 
+									+ SUBSTRING(s_date, 5,2) 
+							FROM MEMBERTT m
+							WHERE id = #{id})
+			AND G.id = #{id}
+		]]> 
+	</select>
+	
+	<select id="selectMembersALLDayOff" parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO" resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaeVO">
+	/* api.vacation.mapper.VacationMapper.selectMembersALLDayOff */
+		SELECT a_cnt
+			FROM YEARCNTTT
+			WHERE id = #{id}
+			AND year = #{gDate}
+	</select>
+	
+	<select id="selectUsersOffDay_KHT" parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO" resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaeVO">
+	/* api.vacation.mapper.VacationMapper.selectUsersOffDay_KHT */
+		with TABLE_A (CLASS, NAME) AS (
+      SELECT '01', case when substring(g_date,5,2) = '01' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '01' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '02', case when substring(g_date,5,2) = '02' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '02' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '03', case when substring(g_date,5,2) = '03' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '03' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '04', case when substring(g_date,5,2) = '04' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '04' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '05', case when substring(g_date,5,2) = '05' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '05' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '06', case when substring(g_date,5,2) = '06' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '06' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '07', case when substring(g_date,5,2) = '07' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '07' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '08', case when substring(g_date,5,2) = '08' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '08' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '09', case when substring(g_date,5,2) = '09' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '09' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '10', case when substring(g_date,5,2) = '10' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '10' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '11', case when substring(g_date,5,2) = '11' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '11' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 UNION ALL 
+      SELECT '12', case when substring(g_date,5,2) = '12' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '12' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 1 
+      ), TABLE_B (CLASS, NAME) AS (
+      SELECT '01', case when substring(g_date,5,2) = '01' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '01' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '02', case when substring(g_date,5,2) = '02' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '02' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+       SELECT '03', case when substring(g_date,5,2) = '03' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '03' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '04', case when substring(g_date,5,2) = '04' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '04' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '05', case when substring(g_date,5,2) = '05' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '05' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '06', case when substring(g_date,5,2) = '06' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '06' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '07', case when substring(g_date,5,2) = '07' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '07' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '08', case when substring(g_date,5,2) = '08' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '08' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+      SELECT '09', case when substring(g_date,5,2) = '09' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '09' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '10', case when substring(g_date,5,2) = '10' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '10' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+         SELECT '11', case when substring(g_date,5,2) = '11' then substring(g_date,7,2) else '' end from guntaett   where id = 'wbm' and substring(g_date,5,2) = '11' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 UNION ALL 
+        SELECT '12', case when substring(g_date,5,2) = '12' then substring(g_date,7,2) else '' end from guntaett   where id = #{id} and substring(g_date,5,2) = '12' and substring(g_date,1,4) = #{gDate} AND minus_dayoff = 0.5 
+      )
+      SELECT       B.month as months,
+               ISNULL(oneday,'-') as dayOff,
+               ISNULL(halfday,'-') as halfOff
+            from 
+      (
+         SELECT    CLASS,
+                  stuff(
+                  (
+                   select ',' + NAME
+                   from TABLE_A  
+                   where CLASS = A.CLASS
+                   FOR XML PATH('')
+                   ),1,1,'') AS 'oneday',
+                   stuff(
+                  (
+                    select ',' + NAME
+                    from TABLE_B  
+                    where CLASS = A.CLASS
+                    FOR XML PATH('')
+                    ),1,1,'') AS 'halfday'
+         from TABLE_A AS A 
+      ) A 
+      Right OUTER JOIN 
+      (
+         SELECT    SUBSTRING(ymd,5,2) AS Month
+         FROM calendartt
+         group by SUBSTRING(ymd,5,2)
+      ) B
+      ON A.class = b.Month
+      group by B.Month, A.CLASS, A.oneday, A.halfday
+	</select> 
+	
+	<select id="selectGuntaeYear" resultType="kr.co.m2m.example.demo.api.vacation.model.YearcntPO">
+	/* api.vacation.mapper.VacationMapper.selectGuntaeYear */
+		SELECT
+			YEAR
+		FROM dbo.yearcnttt
+		GROUP BY YEAR
+		ORDER BY YEAR DESC
+	</select>
+	
+	<select id="checkMinusDayCapa" parameterType="kr.co.m2m.example.demo.api.vacation.model.VacationVO"  resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaePO">
+	/* api.vacation.mapper.VacationMapper.checkMinusDayCapa */
+		SELECT
+			  ISNULL(P.prevMinus, 0) AS prevMinus
+			, ISNULL(N.reqMinus, 0) AS reqMinus
+			, ISNULL(Y.myAcnt, 0) AS myAcnt
+			, ISNULL(U.myAminus, 0) AS myAminus
+		FROM (SELECT SUM(MINUS_DAYOFF) AS prevMinus
+				FROM GUNTAETT
+				WHERE ID = #{id}
+				AND G_DATE BETWEEN #{s_date} and #{e_date}
+			 ) P
+			 , 
+			 (SELECT
+			 	((DATEDIFF(DD, #{s_date} ,#{e_date})
+			 	 	- (
+			 	 		SELECT
+			 	 			COUNT(*)
+			 	 		FROM CALENDARTT
+			 	 		WHERE YMD BETWEEN #{s_date} and #{e_date}
+			 	 		AND HOLIDAY != '1'
+			 	 	  )
+			 		+ 1) 
+			 	 * CONVERT(FLOAT, Z.BIGO1)
+			 	) AS reqMinus
+			 FROM SCODETT Z
+			 WHERE Z.GRCODE = 'A005'
+			 AND Z.SCODE = #{v_code}
+			 ) N
+			 ,
+			 (SELECT
+			 	SUM(A_CNT) AS myAcnt
+			 	FROM YEARCNTTT
+			 	WHERE ID = #{id}
+			 	AND YEAR BETWEEN LEFT(#{s_date}, 4) AND LEFT(#{e_date}, 4)
+			 	GROUP BY ID 
+			 ) Y
+			 ,
+			 (SELECT
+			 	SUM(MINUS_DAYOFF) AS myAminus
+			 	FROM GUNTAETT
+			 	WHERE ID = #{id}
+			 	AND LEFT(G_DATE, 4) BETWEEN LEFT(#{s_date}, 4) AND LEFT(#{e_date}, 4)
+			 	GROUP BY ID
+			 ) U
+	</select>
+	
+	<select id="selectApprovalEmail" parameterType="String"  resultType="kr.co.m2m.example.demo.api.vacation.model.ApprovalVO">
+	/* api.vacation.mapper.VacationMapper.selectApprovalEmail */
+		SELECT
+			(SELECT EMAIL FROM MEMBERTT WHERE ID = A.APP_ID) AS appEmail
+			FROM (
+				SELECT
+					APP_ID
+					FROM APPROVALTT
+					WHERE SERIAL = #{serial}
+			) A
+	</select>
+	
+	<select id="selectScodeNmA005" parameterType="String" resultType="kr.co.m2m.example.demo.api.vacation.model.ScodeVO">
+		/* api.vacation.mapper.VacationMapper."selectScodeNmA005" */
+		SELECT
+			SCODE_NM
+		 FROM SCODETT
+		 WHERE GRCODE = 'A005'
+		 AND SCODE = #{vcode}
+	</select>
+	
+	<select id="selectAllDept" resultType="kr.co.m2m.example.demo.api.vacation.model.ScodeVO">
+		/* api.vacation.mapper.VacationMapper.selectAllDept */
+		SELECT
+			  SCODE
+			, SCODE_NM
+		 FROM SCODETT
+		 WHERE GRCODE = 'A002'
+	</select>
+	
+	<select id="selectWorkerForDept" parameterType="kr.co.m2m.example.demo.api.vacation.model.MemberSO" resultType="kr.co.m2m.example.demo.api.vacation.model.MemberPO">
+		/* api.vacation.mapper.VacationMapper.selectWorkerForDept */
+		SELECT
+			  ID
+			, NAME
+		 FROM MEMBERTT
+		 WHERE DEPT = #{dept}
+		 AND RETIRE != 'Y'
+		 ORDER BY JIKGUB
+	</select>
+	
+	<select id="selectWorkerForYear" parameterType="kr.co.m2m.example.demo.api.vacation.model.MemberSO" resultType="kr.co.m2m.example.demo.api.vacation.model.MemberPO">
+		/* api.vacation.mapper.VacationMapper.selectWorkerForYear */
+		SELECT
+			  ID
+			, NAME
+		 FROM MEMBERTT
+		 <![CDATA[	
+		 WHERE LEFT(S_DATE, 4) <= #{sDate}		
+		 ]]>
+		 AND RETIRE != 'Y'
+		 ORDER BY JIKGUB
+	</select>
+	
+	<select id="selectCalendar" resultType="java.lang.String" parameterType="kr.co.m2m.example.demo.api.vacation.model.VacationVO">
+		/* api.vacation.mapper.VacationMapper.selectCalendar */
+		SELECT ymd
+		  FROM dbo.calendartt
+		 WHERE holiday = '1'
+		   AND ymd BETWEEN #{s_date} AND #{e_date}
+	</select>
+	
+	<insert id="forceInsertGuntae" parameterType="kr.co.m2m.example.demo.api.vacation.model.VacationVO">
+		/* api.vacation.mapper.VacationMapper.forceInsertGuntae */
+		INSERT INTO dbo.guntaett
+		     (
+		       v_code
+		     , id
+		     , g_date
+		     , minus_dayoff
+		     )
+		VALUES
+		     (
+		       #{v_code}
+		     , #{id}
+		     , #{v_date}
+		     , (SELECT bigo1 FROM dbo.scodett WHERE grcode = 'A005' AND scode = #{v_code})
+		     )
+	</insert>
+	
+	<delete id="forceDelGuntae" parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO">
+		/* api.vacation.mapper.VacationMapper.forceDelGuntae */
+		DELETE
+			FROM GUNTAETT
+			WHERE ID = #{id}
+			AND V_CODE = #{vCode}
+			AND G_DATE = #{gDate}
+			AND MINUS_DAYOFF = #{minusDayoff}
+	</delete>
+	
+	<select id="checkDuplGuntae" resultType="Integer" parameterType="kr.co.m2m.example.demo.api.vacation.model.VacationVO">
+	/* api.vacation.mapper.VacationMapper.checkDuplGuntae */
+		SELECT ISNULL(COUNT(*), 0)
+			FROM dbo.guntaett
+			WHERE id = #{id}
+			AND g_date BETWEEN #{s_date} AND #{e_date}
+			<![CDATA[	
+				AND minus_dayoff > 0
+			]]> 
+	</select>
+	
+	<select id="lookupVacationList" parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO" resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaeVO">
+	/* api.vacation.mapper.VacationMapper.lookupVacationList */
+      WITH GEN AS (
+          SELECT 2002 AS YEAR
+          UNION ALL
+          <![CDATA[ 
+             SELECT YEAR+1 FROM GEN WHERE YEAR+1 <= DATEPART(YYYY, GETDATE()) 
+          ]]> 
+      )
+      SELECT CONVERT(VARCHAR(4), YEAR) AS YEAR 
+         FROM GEN
+         where YEAR between 
+            (select CONVERT(NUMERIC, SUBSTRING(s_date, 0,5)) AS YEAR 
+               from membertt 
+               where id = #{id}) 
+         and DATEPART(YYYY, GETDATE())
+         ORDER BY YEAR DESC 
+      OPTION (MAXRECURSION 0)
+   </select>
+   
+   <select id="userList" parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO" resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaeVO">
+   /* api.vacation.mapper.VacationMapper.userList */
+      SELECT name, id, CASE WHEN id = #{id} THEN '1' ELSE '0' END LOGINID   
+         FROM membertt
+         <choose>
+            <when test='dept == 1'>
+            </when>
+            <when test='chiefYn == "Y" '>
+             	WHERE dept = #{dept}
+            </when>
+            <otherwise>
+               	WHERE id = #{id}
+            </otherwise>
+         </choose>
+         ORDER BY LOGINID desc, name asc
+   </select>
+   
+   <select id="useVacation" parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO" resultType="float">
+   /* api.vacation.mapper.VacationMapper.useVacation */
+      /*api.example.mapper.Example01Mapper.useVacation*/
+      SELECT ISNULL(SUM(minus_dayoff),0) as useDate
+      FROM    guntaett
+      WHERE    id = #{id}
+   </select>
+	<select id="selectDeptMonth" parameterType="kr.co.m2m.example.demo.api.vacation.model.GuntaeSO" resultType="kr.co.m2m.example.demo.api.vacation.model.GuntaePO">
+   WITH calendar
+      AS
+      (
+            SELECT  a.ymd          AS ymd
+                   ,b.scode_nm     AS scodeNm
+                   ,b.scode        AS scode
+                   ,a.day          AS day
+                   ,a.holiday      AS holiday
+            FROM   calendartt a, scodett b
+            WHERE  a.holiday = b.scode 
+            AND    substring(a.ymd,1,6)  = trim(#{strDate})
+             AND    b.grcode = 'A004'            
+       ) ,
+        userVacation AS(
+                  SELECT  a.g_date        AS vacationYmd 
+                         ,b.scode_nm      AS scodeNm
+                         ,b.scode         AS scode
+                         ,c.name          AS name 
+                    FROM  guntaett a, scodett b, membertt c
+                    WHERE a.v_code = b.scode 
+                    AND   a.id = c.id
+                    <if test='dept != null and dept != "" '>
+                    AND   c.dept = #{dept}
+		            </if>
+                    AND   substring(a.g_date,1,6) = trim(#{strDate})
+                    AND   grcode = 'A005'                
+        )
+      SELECT  convert(datetime,ymd)           AS dates
+                   ,substring(b.ymd,1,4)      AS  year 
+                   ,substring(b.ymd,5,2)-1    AS  month      
+                   ,substring(b.ymd,7,2)      AS  dkey
+                   ,(case when b.day = '1' then  
+                       case when b.scodeNm = '법정공휴일' then '' else b.scodeNm end 
+                         when b.day = '7' then 
+                       case when b.scodeNm = '법정공휴일' then '' else b.scodeNm end
+                    else isnull(a.name + ': ' + a.scodeNm , '') 
+                    end )AS title
+                    ,case when isnull(a.name,'NULL') != 'NULL' then 'font-dark-style' else '' end AS tempClass               
+      FROM  userVacation a 
+      RIGHT OUTER JOIN   calendar b 
+      ON   a.vacationYmd = b.ymd
+      ORDER BY ymd;
+   </select>	
+</mapper>

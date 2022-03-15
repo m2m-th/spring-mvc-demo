@@ -1,0 +1,93 @@
+spring:
+  profiles:
+    active: local
+  mvc:
+    view:
+      prefix: /WEB-INF/jsp/
+      suffix: .jsp
+  datasource:
+    # driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    # url: jdbc:sqlserver://192.168.0.85:1433;instanceName=vuetest
+    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+    # url: jdbc:log4jdbc:sqlserver://192.168.0.85:1433;instanceName=vuetest
+    url: jdbc:log4jdbc:sqlserver://127.0.0.1:11433;instanceName=m2mDemoDB
+    username: m2mDev
+    password: m2mDev!@
+##    username: SA
+##    password: m2makstp!
+  security:
+    user:
+      name: test
+      password: test
+  redis:
+    host: 127.0.0.1
+##    host: 192.168.0.89
+    port: 6379
+    password: m2makstp
+    lettuce:
+      pool:
+        max-active: 40
+        max-idle: 40
+        min-idle: 10
+  mail:
+    protocol: smtps
+    host: smtps.hiworks.com
+    port: 465
+    username: m2mtest@m2mglobal.co.kr
+    password: 123456789!!
+    properties:
+      mail:
+        smtps:
+          auth: true
+          starttls:
+            enable: true
+
+# Spring boot 서버설정
+server:
+  port: 8082
+  
+# mybatis 설정.
+mybatis:
+  mapper-locations: classpath:/mybatis/mapper/**/*.xml
+  type-aliases-package: kr.co.m2m.example.demo.**.model
+  configuration:
+    cache-enabled: true
+    lazy-loading-enabled: true
+    multiple-result-sets-enabled: true
+    use-column-label: false
+    default-statement-timeout: 30000
+    map-underscore-to-camel-case: true
+    
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} @%method:%line - %msg %n"
+  level:
+    root: info
+    kr.co.m2m.example.demo: debug
+    kr.co.m2m.example.demo.framework: debug
+    jdbc.sqltiming: debug
+    jdbc.audit: off
+    jdbc.resultsettable: debug
+    jdbc.connection: off 
+    org.springframework.security: info
+
+---
+
+spring:
+  profiles: dev
+logging:
+  level:
+    root: info
+    kr.co.m2m.example.demo: info
+    kr.co.m2m.example.demo.framework: info
+
+---
+
+spring:
+  profiles: prd
+logging:
+  level:
+    root: info
+    kr.co.m2m.example.demo: warn
+    kr.co.m2m.example.demo.framework: info
+    

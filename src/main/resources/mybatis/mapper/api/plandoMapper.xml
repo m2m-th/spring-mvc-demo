@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.m2m.example.demo.api.plando.mapper.PlandoMapper">
+
+	<select id="getLastWeekPlanCopy" resultType="kr.co.m2m.example.demo.api.plando.model.PlandoVO">
+		/* api.plando.mapper.PlandoMapper.getLastWeekPlanCopy */
+		SELECT
+				SERIAL
+				, WEEKS
+				, CONTENT
+				, CONVERT(DATE, S_DATE) AS S_DATE
+				, CONVERT(DATE, E_DATE) AS E_DATE
+				, PROCEED
+		  FROM dbo.plandott
+		WHERE 1 = 1
+		  <if test='id != null and id != ""'>
+		  AND ID = #{id}
+		  </if>
+		  <if test='gubun != null and gubun != ""'>
+		  AND GUBUN = #{gubun}
+		  </if>
+		  <if test='sDate != null and sDate != ""'>
+		  AND weeks = (SELECT weeks FROM calendartt WHERE ymd = #{sDate} )
+		  </if>
+	</select>
+	
+	<select id="selectCode" resultType="kr.co.m2m.example.demo.api.plando.model.TestCommonVO">
+		SELECT
+			SCODE,
+			SCODE_NM
+		  FROM dbo.SCODETT
+		WHERE 1 = 1
+		  AND GRCODE = #{groupCode}
+	</select>
+	
+	<insert id="savePlando">
+		/* api.plando.mapper.PlandoMapper.savePlando */
+		INSERT INTO dbo.plandott
+			(
+				  ID
+				, WEEKS
+				, GUBUN
+				, S_DATE
+				, E_DATE
+				, PROCEED
+				, CONTENT
+				, BIGO
+			)
+			VALUES
+			(
+				  #{id}
+				, (SELECT weeks FROM calendartt WHERE ymd = #{sDate})
+				, #{gubun}
+				, #{sDate}
+				, #{eDate}
+				, #{proceed}
+				, #{content}
+				, #{bigo}
+			)
+	</insert>
+	
+	<select id="getDepartmentInfo" resultType="kr.co.m2m.example.demo.api.plando.model.PlandoVO">
+		/* api.plando.mapper.PlandoMapper."getDepartmentInfo" */
+		SELECT 
+			  scode
+			, scode_nm
+			, CASE WHEN sc.scode = mem.dept THEN 'Y' ELSE 'N' END my_dept
+		  FROM scodett sc, membertt mem
+		WHERE grcode = #{grcode}
+		  AND id = #{id}
+	</select>
+	
+	<select id="getMyDepartmentCode" resultType="kr.co.m2m.example.demo.api.plando.model.PlandoVO">
+		/* api.plando.mapper.PlandoMapper."getMyDepartmentCode" */
+		SELECT 
+			  dept AS scode
+		  FROM dbo.membertt
+		WHERE id = #{id}
+	</select>
+	
+	<select id="getPlandoList" resultType="kr.co.m2m.example.demo.api.plando.model.PlandoVO">
+		/* api.plando.mapper.PlandoMapper.getDoList */
+		WITH proceedtt AS (
+							SELECT   scode
+								   , scode_nm
+							  FROM scodett
+							WHERE grcode = #{grcode}
+						  )
+		SELECT
+				ROW_NUMBER() OVER( ORDER BY serial ) rnum
+				, serial
+				, weeks
+				, gubun
+				, content
+				, CONVERT(DATE, s_date) AS s_date
+				, CONVERT(DATE, e_date) AS e_date
+				, proceed
+				, (SELECT proceedtt.scode_nm FROM proceedtt WHERE proceedtt.scode = proceed) AS proceed_nm
+				, bigo
+		  FROM dbo.plandott
+		WHERE 1 = 1
+		  AND id = #{id}
+		  AND gubun = 1
+		  AND weeks = (SELECT weeks FROM calendartt WHERE ymd = #{sDate} )
+		UNION ALL
+		SELECT
+				ROW_NUMBER() OVER( ORDER BY serial ) rnum
+				, serial
+				, weeks
+				, gubun
+				, content
+				, CONVERT(DATE, s_date) AS s_date
+				, CONVERT(DATE, e_date) AS e_date
+				, proceed
+				, (SELECT proceedtt.scode_nm FROM proceedtt WHERE proceedtt.scode = proceed) AS proceed_nm
+				, bigo
+		  FROM dbo.plandott
+		WHERE 1 = 1
+		  AND id = #{id}
+		  AND gubun = 2
+		  AND weeks = (SELECT weeks FROM calendartt WHERE ymd = #{sDate} ) + 1
+		ORDER BY gubun, rnum
+	</select>
+	
+	<select id="getDepartmentMember" resultType="kr.co.m2m.example.demo.api.plando.model.PlandoVO">
+		/* api.plando.mapper.PlandoMapper.getDepartmentMember */
+		SELECT    id
+				, name
+		  FROM dbo.membertt
+		WHERE 1 = 1
+		  AND DEPT = #{scode}
+		  AND (retire = 'N' OR retire_dt > #{sDate})
+		ORDER BY CONVERT(NUMERIC, jikgub), name
+	</select>
+	
+	<select id="getDepartmentMemberPlando" resultType="kr.co.m2m.example.demo.api.plando.model.PlandoVO">
+		/* api.plando.mapper.PlandoMapper.getDepartmentMemberPlando */
+		WITH proceedtt AS (
+								SELECT   scode
+									   , scode_nm
+								  FROM scodett
+								WHERE grcode = #{grcode}
+							  )
+		SELECT    mem.id
+				, mem.name
+				, plando.weeks
+				, plando.gubun
+				, STUFF(RIGHT(plando.s_date, 4), 3, 0, '/') s_date
+				, STUFF(RIGHT(plando.e_date, 4), 3, 0, '/') e_date
+				, plando.proceed
+				, plando.proceed_nm
+				, plando.content
+				, plando.bigo
+		  FROM
+		(
+			SELECT    id
+					, name
+					, jikgub
+			  FROM membertt
+			WHERE dept = #{scode}
+		) mem left outer join
+		(
+			SELECT    plando.id
+					, plando.weeks
+					, plando.gubun
+					, plando.s_date
+					, plando.e_date
+					, plando.proceed
+					, (SELECT proceedtt.scode_nm FROM proceedtt WHERE proceedtt.scode = proceed) AS proceed_nm
+					, plando.content
+					, plando.bigo
+			  FROM plandott plando
+			WHERE 1=1
+			  AND plando.weeks = (SELECT calendar.weeks FROM calendartt calendar WHERE calendar.ymd = #{sDate} )
+			  AND plando.gubun = 1
+			UNION ALL
+			SELECT    plando.id
+					, plando.weeks
+					, plando.gubun
+					, plando.s_date
+					, plando.e_date
+					, plando.proceed
+					, (SELECT proceedtt.scode_nm FROM proceedtt WHERE proceedtt.scode = proceed) AS proceed_nm
+					, plando.content
+					, plando.bigo
+			  FROM plandott plando
+			WHERE 1=1
+			  AND plando.weeks = (SELECT calendar.weeks FROM calendartt calendar WHERE calendar.ymd = #{sDate} ) + 1
+			  AND plando.gubun = 2
+		) plando
+		on mem.id = plando.id
+		ORDER BY CONVERT(NUMERIC, mem.jikgub), mem.name
+	</select>
+	
+	<delete id="deletePlando">
+	/* api.plando.mapper.PlandoMapper."deletePlando" */
+		DELETE FROM dbo.plandott
+		WHERE serial IN
+		(
+			SELECT serial
+			  FROM dbo.plandott
+			WHERE id = #{id}
+			  AND gubun = 1
+			  AND weeks = (SELECT weeks FROM calendartt WHERE ymd = #{editSDate} )
+			UNION ALL
+			SELECT serial FROM dbo.plandott
+			WHERE id = #{id}
+			  AND gubun = 2
+			  AND weeks = (SELECT weeks FROM calendartt WHERE ymd = #{editSDate} ) + 1
+		)
+	</delete>
+	
+	<select id="thisWeekPlando" resultType="kr.co.m2m.example.demo.api.plando.model.PlandoVO">
+	SELECT cal.name
+			     , isnull((SELECT scode_nm FROM scodett
+			       WHERE grcode = #{grcode} AND MAX(mon) = scode), '출근') AS mon
+			     , isnull((SELECT scode_nm FROM scodett
+			       WHERE grcode = #{grcode} AND MAX(tue) = scode), '출근') AS tue
+			     , isnull((SELECT scode_nm FROM scodett
+			       WHERE grcode = #{grcode} AND MAX(wed) = scode), '출근') AS wed
+			     , isnull((SELECT scode_nm FROM scodett
+			       WHERE grcode = #{grcode} AND MAX(thur) = scode), '출근') AS thur
+			     , isnull((SELECT scode_nm FROM scodett
+			       WHERE grcode = #{grcode} AND MAX(fri) = scode), '출근') AS fri
+			     , cal.jikgub
+			  FROM (
+			       SELECT membertt.name
+			            , CASE WHEN calendartt.day = '2' THEN ISNULL(guntaett.v_code, '0') ELSE '0' END AS mon
+			            , CASE WHEN calendartt.day = '3' THEN ISNULL(guntaett.v_code, '0') ELSE '0' END AS tue
+			            , CASE WHEN calendartt.day = '4' THEN ISNULL(guntaett.v_code, '0') ELSE '0' END AS wed
+			            , CASE WHEN calendartt.day = '5' THEN ISNULL(guntaett.v_code, '0') ELSE '0' END AS thur
+			            , CASE WHEN calendartt.day = '6' THEN ISNULL(guntaett.v_code, '0') ELSE '0' END AS fri
+			            , membertt.jikgub
+			         FROM dbo.membertt AS membertt
+			         FULL OUTER JOIN dbo.calendartt AS calendartt
+			           ON calendartt.weeks = (SELECT weeks FROM calendartt WHERE ymd = #{sDate})
+			         LEFT OUTER JOIN dbo.guntaett AS guntaett
+			           ON guntaett.id = membertt.id
+			          AND guntaett.g_date = calendartt.ymd
+			        WHERE membertt.dept = #{scode}
+			        AND (retire = 'N' OR retire_dt > #{sDate})
+			       ) AS cal
+			 GROUP BY cal.name, cal.jikgub
+			 ORDER BY CONVERT(INT, cal.jikgub) ASC
+	</select> 
+	
+	<select id="nextWeekPlando" resultType="kr.co.m2m.example.demo.api.plando.model.PlandoVO">
+	SELECT cal.name
+			     , isnull((SELECT scode_nm FROM scodett
+			       WHERE grcode = #{grcode} AND MAX(mon) = scode), '출근') AS mon
+			     , isnull((SELECT scode_nm FROM scodett
+			       WHERE grcode = #{grcode} AND MAX(tue) = scode), '출근') AS tue
+			     , isnull((SELECT scode_nm FROM scodett
+			       WHERE grcode = #{grcode} AND MAX(wed) = scode), '출근') AS wed
+			     , isnull((SELECT scode_nm FROM scodett
+			       WHERE grcode = #{grcode} AND MAX(thur) = scode), '출근') AS thur
+			     , isnull((SELECT scode_nm FROM scodett
+			       WHERE grcode = #{grcode} AND MAX(fri) = scode), '출근') AS fri
+			     , cal.jikgub
+			  FROM (
+			       SELECT membertt.name
+			            , CASE WHEN calendartt.day = '2' THEN ISNULL(guntaett.v_code, '0') ELSE '0' END AS mon
+			            , CASE WHEN calendartt.day = '3' THEN ISNULL(guntaett.v_code, '0') ELSE '0' END AS tue
+			            , CASE WHEN calendartt.day = '4' THEN ISNULL(guntaett.v_code, '0') ELSE '0' END AS wed
+			            , CASE WHEN calendartt.day = '5' THEN ISNULL(guntaett.v_code, '0') ELSE '0' END AS thur
+			            , CASE WHEN calendartt.day = '6' THEN ISNULL(guntaett.v_code, '0') ELSE '0' END AS fri
+			            , membertt.jikgub
+			         FROM dbo.membertt AS membertt
+			         FULL OUTER JOIN dbo.calendartt AS calendartt
+			           ON calendartt.weeks = (SELECT weeks FROM calendartt WHERE ymd = #{sDate}) + 1
+			         LEFT OUTER JOIN dbo.guntaett AS guntaett
+			           ON guntaett.id = membertt.id
+			          AND guntaett.g_date = calendartt.ymd
+			        WHERE membertt.dept = #{scode}
+			        AND (retire = 'N' OR retire_dt > #{sDate})
+			       ) AS cal
+			 GROUP BY cal.name, cal.jikgub
+			 ORDER BY CONVERT(INT, cal.jikgub) ASC
+	</select>	
+</mapper>
