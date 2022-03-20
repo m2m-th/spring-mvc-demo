@@ -23,7 +23,31 @@
         $(document).on('click','#btn_edit',function(e){
         	e.stopPropagation();
             e.preventDefault();
-        	location.href="/example1/memberEdit?memberNo=" + <c:out value='${member.memberNo}'/>;
+        	/* location.href="/example1/memberEdit?memberNo=" + <c:out value='${member.memberNo}'/>; */
+            var param = $("#form_detail").serializeArray();
+            $.ajax({
+                type : 'post',
+                url : "/example1/memberEdit",
+                data : param,
+                dataType : 'json'
+            }).done(function(result) {
+                if (result) {
+                	console.log(result.responseJSON);
+                	alert('등록에 성공하였습니다.');
+                	
+                	location.href="/example1/memberList";
+                	
+                } else {
+                    alert('등록에 실패하였습니다.');
+                }
+            }).fail(function(result) {
+                if (result && result.status == 403) {
+                	alert('등록에 실패하였습니다.(403)')
+                } else {
+                	console.log(result.responseJSON);
+                	alert('등록에 실패하였습니다.')
+                }
+            });
         });
 	});
 </script>

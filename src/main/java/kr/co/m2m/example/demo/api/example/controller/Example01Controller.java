@@ -15,6 +15,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
@@ -88,6 +89,14 @@ public class Example01Controller {
         return mv;
     }
 	
+	@ResponseBody
+	@PostMapping("/memberDelete")
+	public ResponseEntity<? extends BasicResponse> deleteMember(@Validated(ValidInsert.class) Example01SO so) {
+		log.debug("Update Parameter (PO) : {}", so);
+		ResultModel<String> result = example01Service.deleteExample01(so);
+        return ResponseEntity.ok().body(new CommonResponse<ResultModel<String>>(result));
+	}
+	
 	@GetMapping("/memberRegist")
     public String memberRegist(Model model) {
         return "sample/addMember";
@@ -100,6 +109,16 @@ public class Example01Controller {
 		ResultModel<String> result = example01Service.insertExample01(po);
         return ResponseEntity.ok().body(new CommonResponse<ResultModel<String>>(result));
     }
+	
+	@ResponseBody
+	@PostMapping("/memberEdit")
+	public ResponseEntity<? extends BasicResponse> editMember(@Validated(ValidInsert.class) Example01PO po) {
+		log.debug("Update Parameter (PO) : {}", po);
+		ResultModel<String> result = example01Service.updateExample01(po);
+        return ResponseEntity.ok().body(new CommonResponse<ResultModel<String>>(result));
+	}
+	
+	
 	
 	@ExceptionHandler({BindException.class})
 	public ResponseEntity<?> errorValid2(BindException exception) {

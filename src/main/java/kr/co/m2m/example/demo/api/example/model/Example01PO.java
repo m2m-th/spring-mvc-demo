@@ -12,7 +12,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class Example01PO extends BaseModel<Example01PO> {
-	@NotEmpty(groups = { ValidUpdate.class, ValidDelete.class })
+//	@NotEmpty(groups = { ValidUpdate.class, ValidDelete.class })
 	private long memberNo;
 
 	@NotEmpty(groups = { ValidInsert.class, ValidUpdate.class }, message = "{member.id.empty}")
